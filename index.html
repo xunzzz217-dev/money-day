@@ -1,0 +1,308 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f7f3ed">
+<title>MONEY DAY.</title>
+<style>
+:root{--bg:#f7f3ed;--card:#fffdf9;--brown:#92765f;--dark:#4e4036;--muted:#9b8e83;--line:#e9dfd4;--green:#84977b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--dark);font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;padding-bottom:85px}
+header{padding:30px 22px 18px}
+.brand{font-size:27px;font-weight:800;letter-spacing:2px}
+.sub{font-size:12px;color:var(--muted);letter-spacing:2px;margin-top:5px}
+main{padding:0 17px;max-width:650px;margin:auto}
+h2{font-size:19px;margin:24px 0 12px}
+h3{font-size:15px;margin:0 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:19px;padding:17px;margin-bottom:13px}
+.hero{background:#e9dfd3;color:#554638}
+.hero small{font-size:12px}
+.amount{font-size:34px;font-weight:750;margin:9px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.stat b{display:block;font-size:21px;margin-top:8px}
+.muted{color:var(--muted);font-size:12px}
+button{border:0;border-radius:12px;background:var(--brown);color:white;padding:11px 15px;font-size:14px;font-weight:600;cursor:pointer}
+button.secondary{background:#eee7df;color:var(--dark)}
+button.danger{background:#f4e5df;color:#9a5948}
+button.small{padding:7px 10px;font-size:12px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:11px;background:#fffefa;padding:12px;color:var(--dark);font-size:15px;margin:6px 0 13px}
+label{font-size:12px;color:var(--muted)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.progress{height:8px;background:#eee7df;border-radius:10px;overflow:hidden;margin:12px 0}
+.progress span{display:block;height:100%;background:var(--green);border-radius:10px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fffdf9;border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:9px 3px calc(9px + env(safe-area-inset-bottom));z-index:5}
+nav button{background:none;color:var(--muted);padding:7px 5px;font-size:11px}
+nav button.active{color:var(--brown);font-weight:800}
+.page{display:none}.page.active{display:block}
+.item{padding:12px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border:0}
+.pill{font-size:11px;background:#eee7df;border-radius:20px;padding:4px 8px;color:var(--brown)}
+.actions{display:flex;gap:6px}
+.actions button{font-size:11px;padding:6px 9px}
+.empty{text-align:center;color:var(--muted);padding:22px 0;font-size:13px}
+.month{font-weight:700}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;text-align:center;font-size:12px}
+.day{padding:9px 1px;border-radius:9px;background:#f7f3ed;min-height:38px}
+.day.mark{background:#e4eadf;color:#53674c;font-weight:700}
+.day.today{outline:1px solid var(--brown)}
+canvas{width:100%;height:180px}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand">MONEY DAY.</div>
+ <div class="sub">SAVE A LITTLE, EVERY DAY.</div>
+</header>
+<main>
+<section id="home" class="page active">
+ <div class="card hero">
+  <small>我的累積存款</small>
+  <div class="amount" id="total">$0</div>
+  <small>每一筆努力，都值得被記錄。</small>
+ </div>
+ <div class="grid">
+  <div class="stat"><span class="muted">今日少花</span><b id="todaySaved">$0</b></div>
+  <div class="stat"><span class="muted">本月實際存款</span><b id="monthDeposit">$0</b></div>
+  <div class="stat"><span class="muted">本月少花金額</span><b id="monthSaved">$0</b></div>
+  <div class="stat"><span class="muted">存錢目標</span><b id="goalCount">0 個</b></div>
+ </div>
+ <h2>我的存錢目標</h2><div id="homeGoals"></div>
+ <h2>快速記錄</h2>
+ <div class="card grid">
+  <button onclick="show('deposits');depositForm()">＋ 新增存款</button>
+  <button class="secondary" onclick="show('saved')">今日省錢</button>
+ </div>
+</section>
+
+<section id="deposits" class="page">
+ <h2>實際存款紀錄</h2>
+ <div class="card">
+  <h3 id="depositTitle">新增一筆存款</h3>
+  <label>金額（NT$）</label><input id="dAmount" type="number" min="1" placeholder="例如 500">
+  <label>日期</label><input id="dDate" type="date">
+  <label>存款帳戶</label><select id="dAccount"></select>
+  <label>分類</label><select id="dCategory"></select>
+  <label>備註</label><input id="dNote" placeholder="例如：每週零用錢">
+  <button onclick="saveDeposit()">儲存存款</button>
+  <button class="secondary" onclick="resetDeposit()">取消</button>
+ </div>
+ <div class="card"><h3>所有存款</h3><div id="depositList"></div></div>
+</section>
+
+<section id="goals" class="page">
+ <h2>我的存錢目標</h2>
+ <div class="card">
+  <h3>建立新目標</h3>
+  <label>目標名稱</label><input id="gName" placeholder="例如：旅行基金">
+  <label>目標金額（NT$）</label><input id="gAmount" type="number" min="1" placeholder="例如：10000">
+  <label>預計完成日期</label><input id="gDate" type="date">
+  <button onclick="addGoal()">建立目標</button>
+ </div>
+ <div id="goalList"></div>
+</section>
+
+<section id="saved" class="page">
+ <h2>今日省錢 · MONEY SAVED</h2>
+ <div class="card">
+  <h3>今天忍住沒買的東西</h3>
+  <label>商品名稱</label><input id="sName" placeholder="例如：想買的飲料">
+  <label>原本想花的金額（NT$）</label><input id="sAmount" type="number" min="1" placeholder="例如：65">
+  <label>日期</label><input id="sDate" type="date">
+  <label>備註</label><input id="sNote" placeholder="例如：決定自己帶水">
+  <button onclick="addSaved()">記錄少花金額</button>
+ </div>
+ <div class="card">
+  <h3>每日預算剩餘</h3>
+  <label>今日預算（NT$）</label><input id="budget" type="number" min="0" placeholder="輸入今日預算">
+  <label>今日實際花費（NT$）</label><input id="spent" type="number" min="0" placeholder="輸入實際花費">
+  <button onclick="saveBudget()">計算今日剩餘</button>
+  <div class="amount" id="remaining">$0</div>
+  <p class="muted">預算剩餘 = 今日預算 − 今日實際花費。此金額只列入少花統計，不會加入存款。</p>
+ </div>
+ <div class="card"><h3>少花紀錄</h3><div id="savedList"></div></div>
+</section>
+
+<section id="calendar" class="page">
+ <h2>存錢月曆</h2>
+ <div class="card">
+  <div class="row"><button class="secondary small" onclick="changeMonth(-1)">‹</button><span id="monthLabel" class="month"></span><button class="secondary small" onclick="changeMonth(1)">›</button></div>
+  <div class="calendar" id="calendarGrid" style="margin-top:15px"></div>
+  <p class="muted">綠色日期代表有存款或少花紀錄。</p>
+ </div>
+</section>
+
+<section id="stats" class="page">
+ <h2>我的統計</h2>
+ <div class="grid">
+  <div class="stat"><span class="muted">累積實際存款</span><b id="statDeposit">$0</b></div>
+  <div class="stat"><span class="muted">累積少花金額</span><b id="statSaved">$0</b></div>
+ </div>
+ <div class="card"><h3>近六個月實際存款</h3><canvas id="chart" width="600" height="230"></canvas></div>
+ <div class="card"><h3>記帳原則</h3><p class="muted">實際存款與少花金額分開計算。少花金額不會增加你的存款總額。</p></div>
+</section>
+
+<section id="more" class="page">
+ <h2>更多設定</h2>
+ <div class="card">
+  <h3>存款帳戶</h3>
+  <div id="accountList"></div>
+  <input id="newAccount" placeholder="新增帳戶名稱">
+  <button onclick="addAccount()">新增帳戶</button>
+ </div>
+ <div class="card">
+  <h3>自訂存款分類</h3>
+  <div id="categoryList"></div>
+  <input id="newCategory" placeholder="新增分類名稱">
+  <button onclick="addCategory()">新增分類</button>
+ </div>
+ <div class="card">
+  <h3>存錢挑戰</h3>
+  <input id="challengeName" placeholder="例如：連續存錢 7 天">
+  <button onclick="addChallenge()">新增挑戰</button>
+  <div id="challengeList"></div>
+ </div>
+ <div class="card">
+  <h3>資料備份</h3>
+  <button onclick="backup()">匯出備份</button>
+  <label style="display:block;margin-top:15px">匯入備份 JSON</label>
+  <input type="file" id="restoreFile" accept=".json,application/json" onchange="restoreBackup(event)">
+  <p class="muted">資料保存在目前瀏覽器。請定期匯出備份，清除瀏覽器資料可能會讓紀錄消失。</p>
+ </div>
+</section>
+</main>
+<nav>
+ <button class="active" onclick="show('home',this)">⌂<br>首頁</button>
+ <button onclick="show('deposits',this)">＋<br>存款</button>
+ <button onclick="show('goals',this)">◎<br>目標</button>
+ <button onclick="show('saved',this)">♡<br>省錢</button>
+ <button onclick="show('more',this)">☰<br>更多</button>
+</nav>
+<script>
+const KEY="moneyday_v1";
+const today=()=>new Date().toLocaleDateString("en-CA");
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+let data;
+try{data=JSON.parse(localStorage.getItem(KEY))||{};}catch(e){data={};}
+data.deposits=data.deposits||[];
+data.goals=data.goals||[];
+data.saved=data.saved||[];
+data.budgets=data.budgets||{};
+data.accounts=data.accounts||["現金","銀行帳戶"];
+data.categories=data.categories||["日常存款","零用錢","其他"];
+data.challenges=data.challenges||[];
+let editing=null;
+let shownMonth=new Date();
+const money=n=>"$"+Number(n||0).toLocaleString("zh-TW");
+const sum=a=>a.reduce((s,x)=>s+Number(x.amount||0),0);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render();}
+function show(id,btn){
+ document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+ document.getElementById(id).classList.add("active");
+ document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+ if(btn)btn.classList.add("active");
+ render();
+}
+function options(id,arr,selected){
+ document.getElementById(id).innerHTML=arr.map(x=>`<option ${x===selected?"selected":""}>${esc(x)}</option>`).join("");
+}
+function depositForm(){
+ editing=null;document.getElementById("depositTitle").textContent="新增一筆存款";
+ ["dAmount","dNote"].forEach(id=>document.getElementById(id).value="");
+ document.getElementById("dDate").value=today();
+ options("dAccount",data.accounts);options("dCategory",data.categories);
+}
+function resetDeposit(){depositForm();}
+function saveDeposit(){
+ let amount=Number(document.getElementById("dAmount").value);
+ if(amount<=0)return alert("請輸入正確的存款金額");
+ let item={id:editing||uid(),amount,date:document.getElementById("dDate").value||today(),account:document.getElementById("dAccount").value,category:document.getElementById("dCategory").value,note:document.getElementById("dNote").value};
+ if(editing)data.deposits=data.deposits.map(x=>x.id===editing?item:x);else data.deposits.push(item);
+ editing=null;depositForm();save();
+}
+function editDeposit(id){
+ let x=data.deposits.find(x=>x.id===id);if(!x)return;
+ editing=id;document.getElementById("depositTitle").textContent="編輯存款";
+ document.getElementById("dAmount").value=x.amount;document.getElementById("dDate").value=x.date;
+ document.getElementById("dNote").value=x.note||"";
+ options("dAccount",data.accounts,x.account);options("dCategory",data.categories,x.category);
+ show("deposits");
+}
+function deleteDeposit(id){if(confirm("確定刪除這筆存款？")){data.deposits=data.deposits.filter(x=>x.id!==id);save();}}
+function addGoal(){
+ let name=document.getElementById("gName").value.trim(),amount=Number(document.getElementById("gAmount").value);
+ if(!name||amount<=0)return alert("請填寫目標名稱及正確金額");
+ data.goals.push({id:uid(),name,amount,date:document.getElementById("gDate").value});
+ document.getElementById("gName").value="";document.getElementById("gAmount").value="";save();
+}
+function deleteGoal(id){if(confirm("確定刪除這個目標？")){data.goals=data.goals.filter(x=>x.id!==id);save();}}
+function addSaved(){
+ let name=document.getElementById("sName").value.trim(),amount=Number(document.getElementById("sAmount").value);
+ if(!name||amount<=0)return alert("請填寫商品名稱及正確金額");
+ data.saved.push({id:uid(),name,amount,date:document.getElementById("sDate").value||today(),note:document.getElementById("sNote").value});
+ ["sName","sAmount","sNote"].forEach(id=>document.getElementById(id).value="");
+ save();
+}
+function deleteSaved(id){if(confirm("刪除這筆少花紀錄？")){data.saved=data.saved.filter(x=>x.id!==id);save();}}
+function saveBudget(){
+ let b=Number(document.getElementById("budget").value),s=Number(document.getElementById("spent").value);
+ if(b<0||s<0||document.getElementById("budget").value===""||document.getElementById("spent").value==="")return alert("請輸入預算及實際花費");
+ data.budgets[today()]={budget:b,spent:s,remaining:b-s};save();
+}
+function addAccount(){let v=document.getElementById("newAccount").value.trim();if(v&&!data.accounts.includes(v)){data.accounts.push(v);document.getElementById("newAccount").value="";save();}}
+function addCategory(){let v=document.getElementById("newCategory").value.trim();if(v&&!data.categories.includes(v)){data.categories.push(v);document.getElementById("newCategory").value="";save();}}
+function addChallenge(){let v=document.getElementById("challengeName").value.trim();if(v){data.challenges.push({id:uid(),name:v,done:false});document.getElementById("challengeName").value="";save();}}
+function toggleChallenge(id){let x=data.challenges.find(x=>x.id===id);if(x){x.done=!x.done;save();}}
+function deleteChallenge(id){data.challenges=data.challenges.filter(x=>x.id!==id);save();}
+function backup(){
+ let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="money-day-backup.json";a.click();URL.revokeObjectURL(url);
+}
+function restoreBackup(e){
+ let f=e.target.files[0];if(!f)return;
+ let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x||!Array.isArray(x.deposits)||!Array.isArray(x.goals)||!Array.isArray(x.saved))throw Error();data=x;save();alert("備份匯入成功");}catch(err){alert("檔案格式不正確");}};r.readAsText(f);
+}
+function render(){
+ let t=today(),month=t.slice(0,7),deposits=sum(data.deposits),savedToday=sum(data.saved.filter(x=>x.date===t)),monthDep=sum(data.deposits.filter(x=>x.date.startsWith(month))),monthSav=sum(data.saved.filter(x=>x.date.startsWith(month)));
+ document.getElementById("total").textContent=money(deposits);
+ document.getElementById("todaySaved").textContent=money(savedToday+(data.budgets[t]?.remaining>0?data.budgets[t].remaining:0));
+ document.getElementById("monthDeposit").textContent=money(monthDep);
+ document.getElementById("monthSaved").textContent=money(monthSav+Object.entries(data.budgets).filter(([d,x])=>d.startsWith(month)&&x.remaining>0).reduce((s,[d,x])=>s+x.remaining,0));
+ document.getElementById("goalCount").textContent=data.goals.length+" 個";
+ document.getElementById("homeGoals").innerHTML=data.goals.length?data.goals.map(g=>{let n=sum(data.deposits.filter(x=>x.goalId===g.id));let p=Math.min(100,n/g.amount*100);return `<div class="card"><div class="row"><b>${esc(g.name)}</b><span class="pill">${p.toFixed(0)}%</span></div><div class="progress"><span style="width:${p}%"></span></div><div class="muted">${money(n)} / ${money(g.amount)}</div></div>`}).join(""):'<div class="empty">還沒有存錢目標，建立第一個吧！</div>';
+ document.getElementById("depositList").innerHTML=data.deposits.length?data.deposits.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(x=>`<div class="item"><div class="row"><b>${money(x.amount)}</b><span class="muted">${esc(x.date)}</span></div><div class="muted">${esc(x.account)} · ${esc(x.category)} ${esc(x.note)}</div><div class="actions"><button class="secondary" onclick="editDeposit('${x.id}')">編輯</button><button class="danger" onclick="deleteDeposit('${x.id}')">刪除</button></div></div>`).join(""):'<div class="empty">尚無存款紀錄</div>';
+ document.getElementById("goalList").innerHTML=data.goals.map(g=>{let n=sum(data.deposits.filter(x=>x.goalId===g.id));let p=Math.min(100,n/g.amount*100);return `<div class="card"><div class="row"><b>${esc(g.name)}</b><button class="danger small" onclick="deleteGoal('${g.id}')">刪除</button></div><div class="progress"><span style="width:${p}%"></span></div><div class="muted">${money(n)} / ${money(g.amount)} · ${p.toFixed(0)}%</div><div class="muted">目標日期：${esc(g.date||"未設定")}</div></div>`}).join("")||'<div class="empty">尚無目標</div>';
+ document.getElementById("savedList").innerHTML=data.saved.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(x=>`<div class="item"><div class="row"><b>${esc(x.name)} · ${money(x.amount)}</b><button class="danger small" onclick="deleteSaved('${x.id}')">刪除</button></div><div class="muted">${esc(x.date)} ${esc(x.note)}</div></div>`).join("")||'<div class="empty">還沒有少花紀錄</div>';
+ let budget=data.budgets[t];document.getElementById("remaining").textContent=budget?money(budget.remaining):"$0";
+ if(budget){document.getElementById("budget").value=budget.budget;document.getElementById("spent").value=budget.spent;}
+ document.getElementById("statDeposit").textContent=money(deposits);document.getElementById("statSaved").textContent=money(sum(data.saved)+Object.values(data.budgets).reduce((s,x)=>s+Math.max(0,x.remaining),0));
+ document.getElementById("accountList").innerHTML=data.accounts.map(x=>`<span class="pill">${esc(x)}</span> `).join("");
+ document.getElementById("categoryList").innerHTML=data.categories.map(x=>`<span class="pill">${esc(x)}</span> `).join("");
+ document.getElementById("challengeList").innerHTML=data.challenges.map(x=>`<div class="item row"><label><input type="checkbox" style="width:auto;margin:0" ${x.done?"checked":""} onchange="toggleChallenge('${x.id}')"> ${esc(x.name)}</label><button class="danger small" onclick="deleteChallenge('${x.id}')">刪除</button></div>`).join("")||'<div class="empty">建立一個小挑戰吧！</div>';
+ drawCalendar();drawChart();
+}
+function changeMonth(n){shownMonth.setMonth(shownMonth.getMonth()+n);drawCalendar();}
+function drawCalendar(){
+ let y=shownMonth.getFullYear(),m=shownMonth.getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
+ document.getElementById("monthLabel").textContent=y+" 年 "+(m+1)+" 月";
+ let marks=new Set([...data.deposits.map(x=>x.date),...data.saved.map(x=>x.date)]);
+ let html=["日","一","二","三","四","五","六"].map(x=>`<div class="muted">${x}</div>`).join("");
+ for(let i=0;i<first;i++)html+="<div></div>";
+ for(let d=1;d<=days;d++){let key=y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");html+=`<div class="day ${marks.has(key)?"mark":""} ${key===today()?"today":""}">${d}${marks.has(key)?" ·":""}</div>`;}
+ document.getElementById("calendarGrid").innerHTML=html;
+}
+function drawChart(){
+ let c=document.getElementById("chart"),ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
+ let months=[];for(let i=5;i>=0;i--){let d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);months.push(d.toLocaleDateString("en-CA").slice(0,7));}
+ let vals=months.map(m=>sum(data.deposits.filter(x=>x.date.startsWith(m)))),max=Math.max(1,...vals);
+ vals.forEach((v,i)=>{let x=35+i*94,bh=v/max*135;ctx.fillStyle="#92765f";ctx.fillRect(x,h-35-bh,42,bh);ctx.fillStyle="#6d5b4d";ctx.font="15px sans-serif";ctx.fillText(v?Math.round(v):"0",x,h-42-bh);ctx.font="13px sans-serif";ctx.fillText(months[i].slice(5)+"月",x,h-12);});
+}
+document.getElementById("dDate").value=today();
+document.getElementById("sDate").value=today();
+depositForm();render();
+</script>
+</body>
+</html>
